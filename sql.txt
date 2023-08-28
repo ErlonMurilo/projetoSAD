@@ -1,0 +1,62 @@
+create table if not exists dimensao_tempo(
+	id_tempo SERIAL PRIMARY KEY,
+	data_registro DATE not null,
+	ano INT not null,
+	mes INT not null,
+	dia INT not null,
+	mes_extenso	VARCHAR(9) not null,
+	dia_semana VARCHAR(7) not null
+);
+
+CREATE TABLE IF NOT EXISTS dimensao_espaco (
+    id_espaco SERIAL PRIMARY KEY,
+    uf VARCHAR(2) not null,
+    municipio VARCHAR(100) not null,
+    endereco TEXT not null,
+    latitude VARCHAR(100) not null,
+    longitude VARCHAR(100) not null
+);
+
+CREATE TABLE IF NOT EXISTS dimensao_obra (
+    id_obra SERIAL PRIMARY KEY,
+    codigo_de_indentificacao INT,
+    titulo TEXT,
+    origem varchar(100),
+    cnpj_executor VARCHAR(100),
+    orgao_superior VARCHAR(100),
+    orgao VARCHAR(100),
+    objeto TEXT,
+    situacao VARCHAR(50),
+    link_obra TEXT,
+    execucao_fisica FLOAT,
+    modalidade TEXT,
+    tipo_instrumento VARCHAR(50),
+    tipo VARCHAR(50),
+    subtipo VARCHAR(100)
+);
+
+CREATE TABLE IF NOT EXISTS tabela_fato (
+    id_tempo_inicio INT,
+    id_tempo_termino INT,
+    id_espaco INT,
+    id_obra INT,
+    investimento_total NUMERIC(20, 2),
+    FOREIGN KEY (id_tempo_inicio) REFERENCES dimensao_tempo(id_tempo),
+    FOREIGN KEY (id_tempo_termino) REFERENCES dimensao_tempo(id_tempo),
+    FOREIGN KEY (id_espaco) REFERENCES dimensao_espaco(id_espaco),
+    FOREIGN KEY (id_obra) REFERENCES dimensao_obra(id_obra)
+);
+
+
+###################
+Formula dax para corrigir investimento repetido
+###################
+
+Investimento Corrigido = VAR id_obra_repetido = COUNTROWS(
+       FILTER('public tabela_fato', 'public tabela_fato'[id_obra] = EARLIER('public tabela_fato'[id_obra]))
+) 
+RETURN IF(
+    id_obra_repetido > 1,
+    ('public tabela_fato'[investimento_total]/id_obra_repetido),
+    'public tabela_fato'[investimento_total]
+)
